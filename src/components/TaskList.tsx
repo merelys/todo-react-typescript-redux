@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import styled from "styled-components";
-import { FilterStatus, Task } from "../types";
+import { FilterStatus, Task, TaskFromAPI } from "../types";
 import { OneTask } from "./OneTask";
 import { SearchPanel } from "./SearchPanel";
 import { SortPanel } from "./SortPanel";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
-import { addTask, toggleTask, removeTask } from "../redux/tasksSlice";
+import { addTask, toggleTask, removeTask, setTasks } from "../redux/tasksSlice";
+import { LoadFromAPIPanel } from "./LoadFromAPIPanel";
 
 const TaskListWrapper = styled.div`
   width: 620px;
@@ -69,6 +70,8 @@ export const TaskList: React.FC = () => {
     FilterStatus.ALL
   );
 
+  const [userId, setUserId] = useState<number>(0);
+
   const addTaskHandler = (text: string) => {
     if (!text.trim()) return;
 
@@ -81,6 +84,37 @@ export const TaskList: React.FC = () => {
     //setTasks([...tasks, newTask]);
     dispatch(addTask(newTask));
     setTaskText("");
+  };
+
+  async function getDataFromAPI(userId: number): Promise<TaskFromAPI[]> {
+    const url = new URL("https://jsonplaceholder.typicode.com/todos/");
+    url.search = new URLSearchParams({ userId: userId.toString() }).toString();
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.warn(`HTTP ошибка: ${response.status} ${response.statusText}`);
+        return [];
+      }
+
+      return await response.json();
+    } catch (error: any) {
+      console.warn(`Сетевая ошибка: ${error.message}`);
+      return []; // возвращаем пустой массив при сетевой ошибке
+    }
+  }
+
+  const getData = (): void => {
+    getDataFromAPI(userId).then((data) => {
+      console.log(data);
+      if (data.length > 0) {
+        const mappedTasks = data.map((el) => ({
+          id: el.id,
+          text: el.title,
+          completed: el.completed,
+        }));
+        dispatch(setTasks(mappedTasks));
+      }
+    });
   };
 
   const toggleTaskHandler = (id: number) => {
@@ -116,6 +150,11 @@ export const TaskList: React.FC = () => {
   return (
     <TaskListWrapper>
       <h1>To-Do List</h1>
+      <LoadFromAPIPanel
+        userId={userId}
+        setUserId={setUserId}
+        getData={getData}
+      />
       <SortPanel
         filterStatus={filterStatus}
         setFilterStatus={setFilterStatus}

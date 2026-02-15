@@ -11,3 +11,10 @@ export const FilterStatus = {
 } as const;
 
 export type FilterStatus = (typeof FilterStatus)[keyof typeof FilterStatus];
+
+export interface TaskFromAPI {
+  userId: number;
+  id: number;
+  title: string;
+  completed: boolean;
+}
