@@ -1,6 +1,7 @@
 import { get } from "http";
 import React from "react";
 import styled from "styled-components";
+import { IUser } from "../types";
 
 const Wrapper = styled.div`
   font-size: 13px;
@@ -17,25 +18,34 @@ const Wrapper = styled.div`
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
 `;
 
-const Input = styled.input`
-  width: 45px;
-  padding: 6px 8px;
+const Select = styled.select`
+  width: 190px;
+  padding: 6px 12px;
 
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   background: #f9fafb;
 
   font-size: 13px;
-  text-align: right;
+  color: #111827;
+  text-align: left;
+
+  transition: 0.2s;
+
   &:focus {
     outline: none;
     border-color: #4f46e5;
     background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+  }
+
+  option {
+    padding: 6px 12px;
   }
 `;
 
 const Button = styled.button`
-  width: 170px;
+  width: 100px;
 
   padding: 6px 10px;
 
@@ -56,29 +66,34 @@ const Button = styled.button`
 `;
 
 interface LoadFromAPIPanel {
-  userId: number;
-  setUserId: (value: number) => void;
-  getData: () => void;
+  users: IUser[];
+  selectedUserId: number;
+  setSelectedUserId: (value: number) => void;
+  getTasks: () => void;
 }
 
 export const LoadFromAPIPanel: React.FC<LoadFromAPIPanel> = ({
-  userId,
-  setUserId,
-  getData,
+  users,
+  selectedUserId,
+  setSelectedUserId,
+  getTasks,
 }) => {
   return (
     <Wrapper>
-      user ID
-      <Input
-        type="number"
-        value={userId}
-        onChange={(e) => {
-          const value = e.target.value;
-          setUserId(value === "" ? 0 : Number(value));
-        }}
-        placeholder="user Id..."
-      />
-      <Button onClick={() => getData()}>Get from API</Button>
+      <Select
+        value={selectedUserId}
+        onChange={(e) => setSelectedUserId(Number(e.target.value))}
+      >
+        {" "}
+        <option value=""> Choose user...</option>
+        {users.map((user: IUser) => (
+          <option key={user.id} value={user.id}>
+            {user.name}
+          </option>
+        ))}
+      </Select>
+
+      <Button onClick={() => getTasks()}>Get from API</Button>
     </Wrapper>
   );
 };

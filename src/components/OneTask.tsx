@@ -64,7 +64,7 @@ export const OneTask: React.FC<TaskProps> = ({
           onChange={() => toggleTask(task.id)}
         />
         <TaskText>
-          {task.id}. {task.text}
+          {task.id}. {task.title}
         </TaskText>
         <DeleteButton onClick={() => removeTask(task.id)}>Delete</DeleteButton>
       </TaskItem>

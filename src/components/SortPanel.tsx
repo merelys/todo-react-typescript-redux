@@ -9,7 +9,7 @@ const SortBar = styled.div`
   padding: 10px;
 `;
 
-const SortButton = styled.button<{ active: boolean }>`
+const SortButton = styled.button<{ $active: boolean }>`
   padding: 6px 14px;
   border-radius: 999px;
   border: none;
@@ -17,8 +17,8 @@ const SortButton = styled.button<{ active: boolean }>`
   font-size: 13px;
   cursor: pointer;
 
-  background: ${({ active }) => (active ? "#4f46e5" : "#f3f4f6")};
-  color: ${({ active }) => (active ? "#ffffff" : "#374151")};
+  background: ${({ $active }) => ($active ? "#4f46e5" : "#f3f4f6")};
+  color: ${({ $active }) => ($active ? "#ffffff" : "#374151")};
 
   transition: all 0.2s;
 
@@ -39,19 +39,19 @@ export const SortPanel: React.FC<SortsPanelProps> = ({
   return (
     <SortBar>
       <SortButton
-        active={filterStatus === FilterStatus.ALL}
+        $active={filterStatus === FilterStatus.ALL}
         onClick={() => setFilterStatus(FilterStatus.ALL)}
       >
         All
       </SortButton>
       <SortButton
-        active={filterStatus === FilterStatus.ACTIVE}
+        $active={filterStatus === FilterStatus.ACTIVE}
         onClick={() => setFilterStatus(FilterStatus.ACTIVE)}
       >
         Active
       </SortButton>
       <SortButton
-        active={filterStatus === FilterStatus.COMPLETED}
+        $active={filterStatus === FilterStatus.COMPLETED}
         onClick={() => setFilterStatus(FilterStatus.COMPLETED)}
       >
         Done

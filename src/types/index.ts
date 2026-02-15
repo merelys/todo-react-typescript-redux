@@ -1,6 +1,12 @@
-export interface Task {
+export interface IUser {
   id: number;
-  text: string;
+  name: string;
+}
+
+export interface Task {
+  userId: number;
+  id: number;
+  title: string;
   completed: boolean;
 }
 
@@ -12,9 +18,9 @@ export const FilterStatus = {
 
 export type FilterStatus = (typeof FilterStatus)[keyof typeof FilterStatus];
 
-export interface TaskFromAPI {
-  userId: number;
-  id: number;
-  title: string;
-  completed: boolean;
-}
+// export interface TaskFromAPI {
+//   userId: number;
+//   id: number;
+//   title: string;
+//   completed: boolean;
+// }

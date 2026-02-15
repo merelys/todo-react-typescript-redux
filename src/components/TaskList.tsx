@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import styled from "styled-components";
-import { FilterStatus, Task, TaskFromAPI } from "../types";
+import { FilterStatus, IUser, Task } from "../types";
 import { OneTask } from "./OneTask";
 import { SearchPanel } from "./SearchPanel";
 import { SortPanel } from "./SortPanel";
@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { addTask, toggleTask, removeTask, setTasks } from "../redux/tasksSlice";
 import { LoadFromAPIPanel } from "./LoadFromAPIPanel";
+import { setUsers } from "../redux/usersSlice";
 
 const TaskListWrapper = styled.div`
   width: 620px;
@@ -70,14 +71,17 @@ export const TaskList: React.FC = () => {
     FilterStatus.ALL
   );
 
-  const [userId, setUserId] = useState<number>(0);
+  const [selectedUserId, setSelectedUserId] = useState<number>(0);
+
+  const users = useSelector((state: RootState) => state.users.value);
 
   const addTaskHandler = (text: string) => {
     if (!text.trim()) return;
 
     const newTask: Task = {
+      userId: selectedUserId,
       id: tasks.length ? tasks[tasks.length - 1].id + 1 : 1,
-      text: text,
+      title: text,
       completed: false,
     };
 
@@ -86,11 +90,22 @@ export const TaskList: React.FC = () => {
     setTaskText("");
   };
 
-  async function getDataFromAPI(userId: number): Promise<TaskFromAPI[]> {
-    const url = new URL("https://jsonplaceholder.typicode.com/todos/");
-    url.search = new URLSearchParams({ userId: userId.toString() }).toString();
+  async function getDataFromAPI<T>(
+    url: string,
+    params?: Record<string, string | number>
+  ): Promise<T[]> {
+    const fullUrl = new URL(url);
+
+    if (params) {
+      fullUrl.search = new URLSearchParams(
+        Object.fromEntries(
+          Object.entries(params).map(([key, value]) => [key, value.toString()])
+        )
+      ).toString();
+    }
+
     try {
-      const response = await fetch(url);
+      const response = await fetch(fullUrl);
       if (!response.ok) {
         console.warn(`HTTP ошибка: ${response.status} ${response.statusText}`);
         return [];
@@ -103,13 +118,16 @@ export const TaskList: React.FC = () => {
     }
   }
 
-  const getData = (): void => {
-    getDataFromAPI(userId).then((data) => {
+  const getTasks = async () => {
+    const url = "https://jsonplaceholder.typicode.com/todos/";
+    const userId = selectedUserId;
+    getDataFromAPI<Task>(url, { userId }).then((data) => {
       console.log(data);
       if (data.length > 0) {
         const mappedTasks = data.map((el) => ({
+          userId: el.userId,
           id: el.id,
-          text: el.title,
+          title: el.title,
           completed: el.completed,
         }));
         dispatch(setTasks(mappedTasks));
@@ -132,8 +150,23 @@ export const TaskList: React.FC = () => {
     dispatch(removeTask(id));
   };
 
+  const getUsers = async () => {
+    const url = "https://jsonplaceholder.typicode.com/users";
+    getDataFromAPI<IUser>(url).then((data) => {
+      if (data.length > 0) {
+        const mappedUsers = data.map((el) => ({ id: el.id, name: el.name }));
+        dispatch(setUsers(mappedUsers));
+        console.log(mappedUsers);
+      }
+    });
+  };
+
+  useEffect(() => {
+    getUsers();
+  }, []);
+
   const filteredTasks = tasks.filter((task) =>
-    task.text.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())
+    task.title.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())
   );
 
   const visibleTasks = filteredTasks.filter((task) => {
@@ -151,9 +184,10 @@ export const TaskList: React.FC = () => {
     <TaskListWrapper>
       <h1>To-Do List</h1>
       <LoadFromAPIPanel
-        userId={userId}
-        setUserId={setUserId}
-        getData={getData}
+        users={users}
+        selectedUserId={selectedUserId}
+        setSelectedUserId={setSelectedUserId}
+        getTasks={getTasks}
       />
       <SortPanel
         filterStatus={filterStatus}
