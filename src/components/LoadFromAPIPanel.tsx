@@ -63,6 +63,17 @@ const Button = styled.button`
   &:hover {
     opacity: 0.9;
   }
+
+  &:disabled {
+    backgroud: #d1d5db;
+    color: #6b7280;
+    cursor: not-allowed;
+    opacity: 1;
+  }
+
+  &:disabled: hover {
+    opacity: 1;
+  }
 `;
 
 interface LoadFromAPIPanel {
@@ -85,7 +96,7 @@ export const LoadFromAPIPanel: React.FC<LoadFromAPIPanel> = ({
         onChange={(e) => setSelectedUserId(Number(e.target.value))}
       >
         {" "}
-        <option value=""> Choose user...</option>
+        <option value="0"> Choose user...</option>
         {users.map((user: IUser) => (
           <option key={user.id} value={user.id}>
             {user.name}
@@ -93,7 +104,9 @@ export const LoadFromAPIPanel: React.FC<LoadFromAPIPanel> = ({
         ))}
       </Select>
 
-      <Button onClick={() => getTasks()}>Get from API</Button>
+      <Button disabled={selectedUserId === 0} onClick={getTasks}>
+        Get from API
+      </Button>
     </Wrapper>
   );
 };

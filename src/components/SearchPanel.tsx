@@ -41,15 +41,13 @@ interface SearchPanelProps {
 export const SearchPanel: React.FC<SearchPanelProps> = ({
   searchText,
   setSearchText,
-}) => {
-  return (
-    <SearchWrapper>
-      <SearchInput
-        type="text"
-        value={searchText}
-        onChange={(e) => setSearchText(e.target.value)}
-        placeholder="Search tasks..."
-      />
-    </SearchWrapper>
-  );
-};
+}) => (
+  <SearchWrapper>
+    <SearchInput
+      type="text"
+      value={searchText}
+      onChange={(e) => setSearchText(e.target.value)}
+      placeholder="Search tasks..."
+    />
+  </SearchWrapper>
+);

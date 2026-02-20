@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 import { FilterStatus, IUser, Task } from "../types";
 import { OneTask } from "./OneTask";
@@ -73,6 +73,8 @@ export const TaskList: React.FC = () => {
 
   const [selectedUserId, setSelectedUserId] = useState<number>(0);
 
+  const controllerRef = useRef<AbortController | null>(null);
+
   const users = useSelector((state: RootState) => state.users.value);
 
   const addTaskHandler = (text: string) => {
@@ -92,6 +94,7 @@ export const TaskList: React.FC = () => {
 
   async function getDataFromAPI<T>(
     url: string,
+    signal: AbortSignal,
     params?: Record<string, string | number>
   ): Promise<T[]> {
     const fullUrl = new URL(url);
@@ -105,7 +108,7 @@ export const TaskList: React.FC = () => {
     }
 
     try {
-      const response = await fetch(fullUrl);
+      const response = await fetch(fullUrl, { signal });
       if (!response.ok) {
         console.warn(`HTTP ошибка: ${response.status} ${response.statusText}`);
         return [];
@@ -113,26 +116,31 @@ export const TaskList: React.FC = () => {
 
       return await response.json();
     } catch (error: any) {
-      console.warn(`Сетевая ошибка: ${error.message}`);
+      if (error.name === "AbortError") {
+        console.warn("Запрос отменен");
+      } else {
+        console.warn(`Сетевая ошибка: ${error.message}`);
+      }
       return []; // возвращаем пустой массив при сетевой ошибке
     }
   }
 
   const getTasks = async () => {
+    //добавлен для того, чтобы отменить запрос для предыдущего пользователя,
+    // если быстро выбран другой пользователь
+    controllerRef.current?.abort();
+    controllerRef.current = new AbortController();
+
     const url = "https://jsonplaceholder.typicode.com/todos/";
     const userId = selectedUserId;
-    getDataFromAPI<Task>(url, { userId }).then((data) => {
-      console.log(data);
-      if (data.length > 0) {
-        const mappedTasks = data.map((el) => ({
-          userId: el.userId,
-          id: el.id,
-          title: el.title,
-          completed: el.completed,
-        }));
-        dispatch(setTasks(mappedTasks));
+    getDataFromAPI<Task>(url, controllerRef.current.signal, { userId }).then(
+      (data) => {
+        console.log(data);
+        if (data.length > 0) {
+          dispatch(setTasks(data));
+        }
       }
-    });
+    );
   };
 
   const toggleTaskHandler = (id: number) => {
@@ -150,35 +158,44 @@ export const TaskList: React.FC = () => {
     dispatch(removeTask(id));
   };
 
-  const getUsers = async () => {
+  const getUsers = async (signal: AbortSignal) => {
     const url = "https://jsonplaceholder.typicode.com/users";
-    getDataFromAPI<IUser>(url).then((data) => {
+    getDataFromAPI<IUser>(url, signal).then((data) => {
       if (data.length > 0) {
-        const mappedUsers = data.map((el) => ({ id: el.id, name: el.name }));
-        dispatch(setUsers(mappedUsers));
-        console.log(mappedUsers);
+        //const mappedUsers = data.map((el) => ({ id: el.id, name: el.name }));
+        dispatch(setUsers(data));
+        console.log(data);
       }
     });
   };
 
   useEffect(() => {
-    getUsers();
+    let controller = new AbortController();
+    getUsers(controller.signal);
+
+    return () => {
+      controller.abort();
+    };
   }, []);
 
-  const filteredTasks = tasks.filter((task) =>
-    task.title.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())
-  );
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((task) =>
+      task.title.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())
+    );
+  }, [tasks]);
 
-  const visibleTasks = filteredTasks.filter((task) => {
-    switch (filterStatus) {
-      case FilterStatus.ACTIVE:
-        return !task.completed;
-      case FilterStatus.COMPLETED:
-        return task.completed;
-      default:
-        return true;
-    }
-  });
+  const visibleTasks = useMemo(() => {
+    return filteredTasks.filter((task) => {
+      switch (filterStatus) {
+        case FilterStatus.ACTIVE:
+          return !task.completed;
+        case FilterStatus.COMPLETED:
+          return task.completed;
+        default:
+          return true;
+      }
+    });
+  }, [filteredTasks, filterStatus]);
 
   return (
     <TaskListWrapper>
