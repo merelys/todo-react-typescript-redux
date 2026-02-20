@@ -9,6 +9,7 @@ import { RootState } from "../redux/store";
 import { addTask, toggleTask, removeTask, setTasks } from "../redux/tasksSlice";
 import { LoadFromAPIPanel } from "./LoadFromAPIPanel";
 import { setUsers } from "../redux/usersSlice";
+import { StatisticsPanel } from "./StatisticsPanel";
 
 const TaskListWrapper = styled.div`
   width: 620px;
@@ -206,6 +207,8 @@ export const TaskList: React.FC = () => {
         setSelectedUserId={setSelectedUserId}
         getTasks={getTasks}
       />
+
+      <StatisticsPanel></StatisticsPanel>
       <SortPanel
         filterStatus={filterStatus}
         setFilterStatus={setFilterStatus}
