@@ -6,10 +6,17 @@ import { SearchPanel } from "./SearchPanel";
 import { SortPanel } from "./SortPanel";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
-import { addTask, toggleTask, removeTask, setTasks } from "../redux/tasksSlice";
-import { LoadFromAPIPanel } from "./LoadFromAPIPanel";
-import { setUsers } from "../redux/usersSlice";
+import {
+  addTask,
+  toggleTask,
+  removeTask,
+  setTasks,
+  deleteTasks,
+} from "../redux/tasksSlice";
 import { StatisticsPanel } from "./StatisticsPanel";
+import { useSearchParams } from "react-router-dom";
+import { setSelectedUserId } from "../redux/uiSlice";
+import { getDataFromAPI } from "../utils/api";
 
 const TaskListWrapper = styled.div`
   width: 620px;
@@ -72,11 +79,16 @@ export const TaskList: React.FC = () => {
     FilterStatus.ALL
   );
 
-  const [selectedUserId, setSelectedUserId] = useState<number>(0);
+  //const [selectedUserId, setSelectedUserId] = useState<number>(0);
+  const selectedUserId = useSelector(
+    (state: RootState) => state.ui.selectedUserId
+  );
 
   const controllerRef = useRef<AbortController | null>(null);
 
   const users = useSelector((state: RootState) => state.users.value);
+
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const addTaskHandler = (text: string) => {
     if (!text.trim()) return;
@@ -93,42 +105,20 @@ export const TaskList: React.FC = () => {
     setTaskText("");
   };
 
-  async function getDataFromAPI<T>(
-    url: string,
-    signal: AbortSignal,
-    params?: Record<string, string | number>
-  ): Promise<T[]> {
-    const fullUrl = new URL(url);
+  const toggleTaskHandler = (id: number) => {
+    dispatch(toggleTask(id));
+  };
 
-    if (params) {
-      fullUrl.search = new URLSearchParams(
-        Object.fromEntries(
-          Object.entries(params).map(([key, value]) => [key, value.toString()])
-        )
-      ).toString();
-    }
-
-    try {
-      const response = await fetch(fullUrl, { signal });
-      if (!response.ok) {
-        console.warn(`HTTP ошибка: ${response.status} ${response.statusText}`);
-        return [];
-      }
-
-      return await response.json();
-    } catch (error: any) {
-      if (error.name === "AbortError") {
-        console.warn("Запрос отменен");
-      } else {
-        console.warn(`Сетевая ошибка: ${error.message}`);
-      }
-      return []; // возвращаем пустой массив при сетевой ошибке
-    }
-  }
+  const removeTaskHandler = (id: number) => {
+    dispatch(removeTask(id));
+  };
 
   const getTasks = async () => {
+    if (!selectedUserId) return;
+
     //добавлен для того, чтобы отменить запрос для предыдущего пользователя,
     // если быстро выбран другой пользователь
+
     controllerRef.current?.abort();
     controllerRef.current = new AbortController();
 
@@ -144,46 +134,62 @@ export const TaskList: React.FC = () => {
     );
   };
 
-  const toggleTaskHandler = (id: number) => {
-    // setTasks(
-    //   tasks.map((task) =>
-    //     task.id === id ? { ...task, completed: !task.completed } : task
-    //   )
-    // );
-
-    dispatch(toggleTask(id));
-  };
-
-  const removeTaskHandler = (id: number) => {
-    //setTasks(tasks.filter((task) => task.id !== id));
-    dispatch(removeTask(id));
-  };
-
-  const getUsers = async (signal: AbortSignal) => {
-    const url = "https://jsonplaceholder.typicode.com/users";
-    getDataFromAPI<IUser>(url, signal).then((data) => {
-      if (data.length > 0) {
-        //const mappedUsers = data.map((el) => ({ id: el.id, name: el.name }));
-        dispatch(setUsers(data));
-        console.log(data);
-      }
-    });
-  };
-
   useEffect(() => {
     let controller = new AbortController();
-    getUsers(controller.signal);
+
+    const userIdParam = searchParams.get("userId");
+    const statusParam = searchParams.get("status");
+    const searchParam = searchParams.get("search");
+
+    if (userIdParam) {
+      dispatch(setSelectedUserId(Number(userIdParam)));
+    }
+
+    if (statusParam) {
+      setFilterStatus(statusParam as FilterStatus);
+    }
+
+    if (searchParam) {
+      setSearchText(searchParam);
+    }
+
+    getTasks();
 
     return () => {
       controller.abort();
     };
   }, []);
 
+  useEffect(() => {
+    if (!selectedUserId) {
+      dispatch(deleteTasks());
+      return;
+    }
+
+    const params: Record<string, string> = {};
+
+    if (selectedUserId) {
+      params.userId = selectedUserId.toString();
+      console.log(`вызов getTasks  ${params.userId} `);
+      getTasks();
+    }
+
+    if (filterStatus) {
+      params.status = filterStatus;
+    }
+
+    if (searchText.trim()) {
+      params.search = searchText;
+    }
+
+    setSearchParams(params);
+  }, [selectedUserId, filterStatus, searchText]);
+
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) =>
       task.title.toLocaleLowerCase().includes(searchText.toLocaleLowerCase())
     );
-  }, [tasks]);
+  }, [tasks, searchText]);
 
   const visibleTasks = useMemo(() => {
     return filteredTasks.filter((task) => {
@@ -201,12 +207,6 @@ export const TaskList: React.FC = () => {
   return (
     <TaskListWrapper>
       <h1>To-Do List</h1>
-      <LoadFromAPIPanel
-        users={users}
-        selectedUserId={selectedUserId}
-        setSelectedUserId={setSelectedUserId}
-        getTasks={getTasks}
-      />
 
       <StatisticsPanel></StatisticsPanel>
       <SortPanel

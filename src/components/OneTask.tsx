@@ -1,6 +1,7 @@
 import React from "react";
 import styled from "styled-components";
 import { Task } from "../types";
+import { updateTask } from "../redux/tasksSlice";
 
 interface TaskProps {
   task: Task;
@@ -10,13 +11,14 @@ interface TaskProps {
 
 const TaskItem = styled.div<{ completed: boolean }>`
   text-decoration: ${({ completed }) => (completed ? "line-through" : "none")};
+  display: flex;
+  justify-content: space-between;
 `;
 
 const TaskRow = styled.div<{ completed: boolean }>`
   width: 100%;
-  display: flex;
+
   align-items: center;
-  justify-content: space-around;
 
   padding: 10px 12px;
   border-radius: 12px;
@@ -36,6 +38,29 @@ const TaskRow = styled.div<{ completed: boolean }>`
 const TaskText = styled.span`
   cursor: pointer;
   font-size: 14px;
+`;
+
+const LeftSide = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+`;
+
+const RightSide = styled.div`
+  display: flex;
+  gap: 5px;
+`;
+
+const EditButton = styled.button`
+  border: none;
+  background: transparent;
+  color: #4f46e5;
+  cursor: pointer;
+  font-size: 13px;
+
+  &:hover {
+    text-decoration: underline;
+  }
 `;
 
 const DeleteButton = styled.button`
@@ -58,15 +83,22 @@ export const OneTask: React.FC<TaskProps> = ({
   return (
     <TaskRow completed={task.completed}>
       <TaskItem completed={task.completed}>
-        <input
-          type="checkbox"
-          checked={task.completed}
-          onChange={() => toggleTask(task.id)}
-        />
-        <TaskText>
-          {task.id}. {task.title}
-        </TaskText>
-        <DeleteButton onClick={() => removeTask(task.id)}>Delete</DeleteButton>
+        <LeftSide>
+          <input
+            type="checkbox"
+            checked={task.completed}
+            onChange={() => toggleTask(task.id)}
+          />
+          <TaskText>
+            {task.id}. {task.title}
+          </TaskText>
+        </LeftSide>
+        <RightSide>
+          <EditButton>Edit</EditButton>
+          <DeleteButton onClick={() => removeTask(task.id)}>
+            Delete
+          </DeleteButton>
+        </RightSide>
       </TaskItem>
     </TaskRow>
   );
